@@ -53,10 +53,7 @@ def get_zip_codes_by_province(input_file) -> dict:
     return zip_codes_by_province
 
 
-def process_country_districts_geojson(input_file, country_code, input_zip_codes_file):
-    # Load GeoJSON data for districts
-    with open(input_file, 'r', encoding='utf-8') as f:
-        districts_data = geojson.load(f)
+def process_country_districts_geojson(districts_data, country_code, input_zip_codes_file):
 
     # Load zip code data
     with open(input_zip_codes_file, 'r', encoding='utf-8') as f:
@@ -144,8 +141,6 @@ output_districts_center_dir = "country_district_labels"
 country_centers_geojson = "europe_country_labels.geojson"
 output_country_districts_geojson = 'europe_districts.geojson'  # Change this to your desired output path
 
-# TODO iterate over all countries
-
 districts = []
 country_centers = []
 
@@ -162,27 +157,58 @@ for filename in os.listdir(input_geojson_dir):
 
         print(f"Processing: {file_path}")
 
-        # if(country_code in ["AT", "CZ", "DE",  "IT"]): #"FR",
-        #     print("Already processed " + country_code)
-        #     continue
+        output_district_centers = output_districts_center_dir + "/" + country_code + ".geojson"
 
-        features, country_center, district_centers = process_country_districts_geojson(file_path, country_code, zip_code_path)
+
+        # Load GeoJSON data for districts
+        with open(file_path, 'r', encoding='utf-8') as f:
+            districts_data = geojson.load(f)
+
+
+        # Check if the file already exists
+        if os.path.exists(output_district_centers):
+            print("Already processed " + country_code)
+            
+            continue
+
+        features, country_center, district_centers = process_country_districts_geojson(districts_data, country_code, zip_code_path)
 
         districts.extend(features)
         country_centers.append(country_center)
     
-        output_district_centers = output_districts_center_dir + "/" + country_code + ".geojson"
 
         # Save the modified data to a new GeoJSON file, ensuring ASCII encoding
         with open(output_district_centers, 'w', encoding='utf-8') as f:
             geojson.dump(district_centers, f, ensure_ascii=True)
 
+previous_country_centers = []
+previous_districts = []
+
+# Load previously saved country centers if the file exists
+if os.path.exists(country_centers_geojson):
+    with open(country_centers_geojson, 'r', encoding='utf-8') as f:
+        data = geojson.load(f)
+        # Extract the existing features into the list
+        previous_country_centers = data.get('features', [])
+
+# Load previously saved districts if the file exists
+if os.path.exists(output_country_districts_geojson):
+    with open(output_country_districts_geojson, 'r', encoding='utf-8') as f:
+        data = geojson.load(f)
+        # Extract the existing features into the list
+        previous_districts = data.get('features', [])
+
+
+previous_country_centers.extend(country_centers)
+
 
 with open(country_centers_geojson, 'w', encoding='utf-8') as f:
-    geojson.dump(geojson.FeatureCollection(country_centers), f, ensure_ascii=True)
+    geojson.dump(geojson.FeatureCollection(previous_country_centers), f, ensure_ascii=True)
+
+previous_districts.extend(districts)
 
 # Save the modified data to a new GeoJSON file, ensuring ASCII encoding
 with open(output_country_districts_geojson, 'w', encoding='utf-8') as f:
-    geojson.dump(geojson.FeatureCollection(districts), f, ensure_ascii=True)
+    geojson.dump(geojson.FeatureCollection(previous_districts), f, ensure_ascii=True)
 
 print(f"Europe districts geojson created and saved to {output_country_districts_geojson}")
