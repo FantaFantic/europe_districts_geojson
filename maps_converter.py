@@ -12,7 +12,7 @@ fill_colors = {
     "CZ" : "#f3b554",
 
     "IT" : "#f4da04",
-    "ES" : "#f3b554",
+    "ES" : "#F3B455",
     "PT" : "#e2e9c2",
 
     "DE" : "#dbe4b5",
@@ -22,14 +22,15 @@ fill_colors = {
 
     "FR" : "#f5dfb7",
 
+    "CH" : "#9BB5CD",
+    "NL" : "#ED9C29",
+    "PL" : "#f4da04",
     # SLOVENIA
-    "SI" : "",
+    "SI" : "#EC9D27",
     # BELGIUM
-    "BE" : "",
+    "BE" : "#f4da04",
     # HUNGARIA
-    "HU" : "",
-    # SCHWEIZ
-    "CH" : "",
+    "HU" : "#C3D476",
     # LUXEMBOURG
     "LU" : "",
 }
@@ -82,6 +83,12 @@ def process_country_districts_geojson(districts_data, country_code, input_zip_co
     for feature in districts_data['features']:
         # Get the district geometry as a shapely object
         district_geometry = shape(feature['geometry'])
+
+        # Check if the geometry is valid, and fix it if necessary
+        if not district_geometry.is_valid:
+            print(f"Invalid geometry found in district: {feature['properties'].get('name', 'Unknown District')}")
+            district_geometry = district_geometry.buffer(0)  # This can fix some invalid geometries
+        
         
         # Calculate the centroid of the district polygon
         centroid = district_geometry.centroid
